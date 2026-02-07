@@ -1,53 +1,147 @@
 local rs = game:GetService("ReplicatedStorage")
 local hit = rs.EnemyGetHit
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/agreed69-scripts/scripts/refs/heads/main/pphud%20fix.lua", true))()
+-- Try with a different UI library that's more reliable
+local Library
+local success, errorMsg = pcall(function()
+    Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
+end)
+
+if not success then
+    -- Fallback to a simpler UI or create our own
+    warn("Failed to load UI library:", errorMsg)
+    Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/agreed69-scripts/scripts/refs/heads/main/pphud%20fix.lua"))()
+end
+
+if not Library then
+    -- Create simple UI as last resort
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Too Many Weapons",
+        Text = "Script loaded! But UI failed.",
+        Duration = 5
+    })
+    
+    -- Simple commands
+    _G.DamageValue = 10000
+    
+    spawn(function()
+        while true do
+            wait(1)
+            if _G.kill then
+                for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+                    hit:FireServer(enemy, _G.DamageValue or 10000, true, "item6_rarity1")
+                end
+            end
+        end
+    end)
+    
+    print("Commands:")
+    print("Set damage: _G.DamageValue = 10000")
+    print("Toggle kill: _G.kill = true/false")
+    print("Kill once: run _G.killAll()")
+    
+    _G.killAll = function()
+        for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+            hit:FireServer(enemy, _G.DamageValue or 10000, true, "item6_rarity1")
+        end
+    end
+    
+    return
+end
+
 local Flags = Library.Flags
 
 local Window = Library:Window({
-   Text = "❤",
-   Size = UDim2.new(0, 250, 0, 180) -- Increased height for new input
+   Text = "🔫 Too Many Weapons",
+   Size = UDim2.new(0, 300, 0, 200)
 })
 
 local Tab = Window:Tab({
-   Text = "Too Many Weapons by Agreed69"
+   Text = "Main"
 })
 
 local Section = Tab:Section({
-    Text = "Exploit"
+    Text = "Damage Control"
 })
 
--- Damage input field
+-- Damage input
 Section:Textbox({
-    Text = "Damage Value",
+    Text = "Damage Amount",
     Callback = function(value)
-        _G.DamageValue = tonumber(value) or 100  -- Default to 100 if invalid
+        _G.DamageValue = tonumber(value) or 10000
     end,
-    Default = "10000"  -- Default high damage
+    Default = "10000"
 })
 
+-- Kill button
 Section:Button({
-    Text = "Kill All",
+    Text = "💀 Kill All Enemies",
     Callback = function()
-        local damage = _G.DamageValue or 10000  -- Use stored damage or default
+        local damage = _G.DamageValue or 10000
         for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
-            hit:FireServer(enemy, damage, true, "item6_rarity1")
+            hit:FireServer(enemy, damage, true, "item6_rarity5")
         end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Killed All",
+            Text = "Damage: " .. damage,
+            Duration = 3
+        })
     end
 })
 
-Section:Check({
-    Text = "Loop Kill All",
+-- Loop kill toggle
+Section:Toggle({
+    Text = "🔄 Auto Kill Loop",
     Callback = function(bool)
         _G.kill = bool
-        while _G.kill do
-            local damage = _G.DamageValue or 10000  -- Use stored damage or default
-            for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
-                hit:FireServer(enemy, damage, true, "item6_rarity1")
+        spawn(function()
+            while _G.kill do
+                local damage = _G.DamageValue or 10000
+                for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+                    hit:FireServer(enemy, damage, true, "item6_rarity5")
+                end
+                wait(0.2)
             end
-            wait(0.1)
+        end)
+    end
+})
+
+-- Different weapon options
+local Section2 = Tab:Section({
+    Text = "Weapon Options"
+})
+
+local weaponOptions = {
+    "item6_rarity5", -- Highest rarity
+    "item6_rarity4",
+    "item5_rarity5",
+    "item4_rarity5",
+    "item1_rarity5"
+}
+
+local selectedWeapon = "item6_rarity5"
+
+Section2:Dropdown({
+    Text = "Weapon Type",
+    Callback = function(option)
+        selectedWeapon = option
+    end,
+    Options = weaponOptions,
+    Default = "item6_rarity5"
+})
+
+-- Kill with selected weapon
+Section2:Button({
+    Text = "Test Weapon",
+    Callback = function()
+        local damage = _G.DamageValue or 10000
+        for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+            hit:FireServer(enemy, damage, true, selectedWeapon)
         end
     end
 })
 
+Window:Select()
 Tab:Select()
+
+print("✅ Too Many Weapons loaded successfully!")
