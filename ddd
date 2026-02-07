@@ -1,0 +1,53 @@
+local rs = game:GetService("ReplicatedStorage")
+local hit = rs.EnemyGetHit
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/agreed69-scripts/scripts/refs/heads/main/pphud%20fix.lua", true))()
+local Flags = Library.Flags
+
+local Window = Library:Window({
+   Text = "❤",
+   Size = UDim2.new(0, 250, 0, 180) -- Increased height for new input
+})
+
+local Tab = Window:Tab({
+   Text = "Too Many Weapons by Agreed69"
+})
+
+local Section = Tab:Section({
+    Text = "Exploit"
+})
+
+-- Damage input field
+Section:Textbox({
+    Text = "Damage Value",
+    Callback = function(value)
+        _G.DamageValue = tonumber(value) or 100  -- Default to 100 if invalid
+    end,
+    Default = "10000"  -- Default high damage
+})
+
+Section:Button({
+    Text = "Kill All",
+    Callback = function()
+        local damage = _G.DamageValue or 10000  -- Use stored damage or default
+        for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+            hit:FireServer(enemy, damage, true, "item6_rarity1")
+        end
+    end
+})
+
+Section:Check({
+    Text = "Loop Kill All",
+    Callback = function(bool)
+        _G.kill = bool
+        while _G.kill do
+            local damage = _G.DamageValue or 10000  -- Use stored damage or default
+            for _, enemy in ipairs(game.Workspace.Enemies.dungeon:GetChildren()) do
+                hit:FireServer(enemy, damage, true, "item6_rarity1")
+            end
+            wait(0.1)
+        end
+    end
+})
+
+Tab:Select()
